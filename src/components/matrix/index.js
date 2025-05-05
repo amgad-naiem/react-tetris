@@ -4,7 +4,7 @@ import classnames from 'classnames';
 import propTypes from 'prop-types';
 
 import style from './index.less';
-import { isClear } from '../../unit/';
+import { isClear, want } from '../../unit/';
 import { fillLine, blankLine } from '../../unit/const';
 import states from '../../control/states';
 
@@ -73,18 +73,47 @@ export default class Matrix extends React.Component {
         ]));
       });
     } else if (shape) {
+      // Calculate Ghost Piece position
+      let ghostXy = xy;
+      while (want({ shape, xy: [ghostXy.get(0) + 1, ghostXy.get(1)] }, props.matrix)) {
+        ghostXy = ghostXy.set(0, ghostXy.get(0) + 1);
+      }
+
+      // Draw Ghost Piece (value 3)
+      shape.forEach((m, k1) => {
+        m.forEach((n, k2) => {
+          if (n && ghostXy.get(0) + k1 >= 0) {
+            const y = ghostXy.get(0) + k1;
+            const x = ghostXy.get(1) + k2;
+            if (matrix.getIn([y, x]) === 0) { // Only draw ghost on empty cells
+              matrix = matrix.setIn([y, x], 3);
+            }
+          }
+        });
+      });
+
+
+      // Draw Current Piece (values 1 or 2) - potentially overwriting ghost
       shape.forEach((m, k1) => (
         m.forEach((n, k2) => {
           if (n && xy.get(0) + k1 >= 0) { // 竖坐标可以为负
-            let line = matrix.get(xy.get(0) + k1);
+            const y = xy.get(0) + k1;
+            const x = xy.get(1) + k2;
             let color;
-            if (line.get(xy.get(1) + k2) === 1 && !clearLines) { // 矩阵与方块重合
-              color = 2;
+            // Check if the target cell on the matrix already has a block (but not ghost)
+            if (matrix.getIn([y, x]) === 1 && !clearLines) {
+              // Check for existing block (1), ignore ghost (3)
+              color = 2; // Collision color
+            } else if (matrix.getIn([y, x]) !== 3) {
+              // Don't overwrite ghost piece unless it's the actual piece position
+              color = 1; // Normal color
             } else {
-              color = 1;
+              color = matrix.getIn([y, x]); // Keep ghost color if current piece isn't here yet
             }
-            line = line.set(xy.get(1) + k2, color);
-            matrix = matrix.set(xy.get(0) + k1, line);
+            // Only set color if it's 1 or 2 (current piece or collision)
+            if (color === 1 || color === 2) {
+              matrix = matrix.setIn([y, x], color);
+            }
           }
         })
       ));
@@ -154,8 +183,9 @@ export default class Matrix extends React.Component {
             {
               p.map((e, k2) => <b
                 className={classnames({
-                  c: e === 1,
-                  d: e === 2,
+                  c: e === 1, // Current piece color
+                  d: e === 2, // Collision color
+                  ghost: e === 3, // Ghost piece color
                 })}
                 key={k2}
               />)
