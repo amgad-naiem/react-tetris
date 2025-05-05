@@ -124,4 +124,5 @@ module.exports = {
   transform,
   lan,
   i18n: i18n.data,
+  languages: i18n.lan,
 };

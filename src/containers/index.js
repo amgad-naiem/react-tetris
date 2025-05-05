@@ -16,7 +16,7 @@ import Logo from '../components/logo';
 import Keyboard from '../components/keyboard';
 import Guide from '../components/guide';
 
-import { transform, lastRecord, speeds, i18n, lan } from '../unit/const';
+import { transform, lastRecord, speeds, i18n, lan, languages } from '../unit/const';
 import { visibilityChangeEvent, isFocus } from '../unit/';
 import states from '../control/states';
 
@@ -53,6 +53,13 @@ class App extends React.Component {
       states.overStart();
     }
   }
+
+  handleLanguageChange(event) {
+    const newLan = event.target.value;
+    const currentUrl = new URL(window.location.href);
+    currentUrl.searchParams.set('lan', newLan);
+    window.location.href = currentUrl.toString();
+  }
   resize() {
     this.setState({
       w: document.documentElement.clientWidth,
@@ -82,11 +89,24 @@ class App extends React.Component {
       return css;
     })();
 
+    const languageSelector = (
+      <div style={{ position: 'absolute', top: '10px', right: '10px', zIndex: 100 }}>
+        <select value={lan} onChange={this.handleLanguageChange}>
+          {languages.map(langCode => (
+            <option key={langCode} value={langCode}>
+              {langCode.toUpperCase()}
+            </option>
+          ))}
+        </select>
+      </div>
+    );
+
     return (
       <div
         className={style.app}
         style={size}
       >
+        {languageSelector}
         <div className={classnames({ [style.rect]: true, [style.drop]: this.props.drop })}>
           <Decorate />
           <div className={style.screen}>
